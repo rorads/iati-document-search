@@ -1,0 +1,6 @@
+requests
+pandas
+tika
+lxml
+dask
+tqdm
