@@ -23,6 +23,8 @@ Original documents will **not** be stored - only a text representation of each.
 - [x] Reshape data into a dataframe
   - [x] Create additional unique document dataframe with the URL as the id
 - [x] Use TIKA to parse text and metadata (requires java in the dockerfile)
+- [x] Reformat to use modular python (import modules in different files etc.)
+- [ ] Setup SQLite
 - [ ] Use Dask or another parallel processing framework to pull the content, save the text, hash, and discard the document.
   * ~~Either will require pandoc, tika, or some other document handler - using a collection of different libraries in python would be annoying.~~ Using TIKA...
 - [ ] Pickle / serialise using JSON / SQLite

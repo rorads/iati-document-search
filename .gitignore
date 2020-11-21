@@ -1,1 +1,3 @@
 data/[^(.gitkeep)]*
+
+iatidocs/__pycache__

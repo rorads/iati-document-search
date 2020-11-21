@@ -38,3 +38,8 @@ RUN apt-get update && \
 # Setup JAVA_HOME -- useful for docker commandline
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 RUN export JAVA_HOME
+
+###### SQLite
+RUN apt-get update && \
+    apt-get install -y sqlite3 libsqlite3-dev && \
+    apt-get clean;
