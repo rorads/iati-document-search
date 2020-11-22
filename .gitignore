@@ -1,3 +1,5 @@
 data/[^(.gitkeep)]*
 
 iatidocs/__pycache__
+
+dask-worker-space

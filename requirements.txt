@@ -4,3 +4,5 @@ tika
 lxml
 dask
 tqdm
+filprofiler
+bokeh
