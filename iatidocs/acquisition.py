@@ -39,7 +39,7 @@ class IATIAcquisition:
         # count the number of iati_identifers in the file
         os.system(f'grep "iati_identifier\\":" {directory} | wc -l')
     
-    def clean_json(self, input='data/output.json', output='data/cleaned_out.json'):
+    def clean_json(self, input='data/output.json', output='data/cleaned_out.json.txt'):
         """
         Given the directory of a raw JSON file from SOLR, cleans the response
         such that only the 'response/docs' elements remain, ready to be 
@@ -51,7 +51,9 @@ class IATIAcquisition:
             response = json.load(inf)
             response = response['response']['docs']
             with open(output, 'w+') as outf:
-                json.dump(response, outf, indent=0)
+                for entry in response:
+                    json.dump(entry, outf)
+                    outf.write('\n')
             outf.close()
         inf.close()
 
@@ -131,20 +133,28 @@ class IATIAcquisition:
         return results
 
     def initialise_iati(self):
-        # self.get_documents()
+        
+        # self.get_documents(1000)
 
         # print('cleaning...')
-        # self.clean_json()
+        # self.clean_json(input='data/archive_output.json')
 
         print('loading activities in dask...')
-        activity_rows = dd.read_json('data/cleaned_out.json', blocksize=100)
+        activity_bag = bag.read_text('data/cleaned_out.json.txt').map(json.loads)
+
+        print('converting to dataframe...')
+        activity_rows = activity_bag.to_dataframe()
 
         print("sampling...")
-        print(activity_rows.sample(0.0001).head())
+        activity_rows = activity_rows.sample(frac=0.01).reset_index()
+        print(activity_rows['document_link_xml'].compute()[0])
 
-        # print('unpacking xml...')
-        # activity_rows['document_dicts'] = activity_rows['document_link_xml'].map(self.unpack_xml)
+
+        print('unpacking xml...')
+        activity_rows['document_dicts'] = activity_rows['document_link_xml'].map(self.unpack_xml, meta=('document_link_xml', str))
         
+        print(activity_rows.head())
+
         # print('unfolding document dataframe...')
         # document_dataframe = self.stitch_document_dicts(activity_rows)
 
