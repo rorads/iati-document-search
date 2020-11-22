@@ -7,6 +7,10 @@ from tika import parser
 from tqdm import tqdm
 import hashlib
 import concurrent.futures
+import dask
+import dask.dataframe as dd
+import dask.bag as bag
+from dask.distributed import Client, progress
 
 
 class IATIAcquisition:
@@ -47,13 +51,14 @@ class IATIAcquisition:
             response = json.load(inf)
             response = response['response']['docs']
             with open(output, 'w+') as outf:
-                json.dump(response, outf)
+                json.dump(response, outf, indent=0)
             outf.close()
         inf.close()
 
         return output
 
-    def unpack_xml(self, xml_string_array):
+    @staticmethod
+    def unpack_xml(xml_string_array):
         """
         Given a list of xml slugs, returns an serialised dict
         """
@@ -126,17 +131,29 @@ class IATIAcquisition:
         return results
 
     def initialise_iati(self):
-        self.get_documents(row_count=250)
-        self.clean_json()
-        activity_rows = pd.read_json('data/cleaned_out.json')
-        activity_rows['document_dicts'] = activity_rows['document_link_xml'].apply(self.unpack_xml)
-        document_dataframe = self.stitch_document_dicts(activity_rows)
+        # self.get_documents()
 
-        # document_dataframe['tika_object'] = [self.lazy_tika_parse(x) for x in tqdm(document_dataframe['url'])] # series
-        document_dataframe['tika_object'] = self.concurrent_run_tika(self.lazy_tika_parse, document_dataframe['url'])
+        # print('cleaning...')
+        # self.clean_json()
+
+        print('loading activities in dask...')
+        activity_rows = dd.read_json('data/cleaned_out.json', blocksize=100)
+
+        print("sampling...")
+        print(activity_rows.sample(0.0001).head())
+
+        # print('unpacking xml...')
+        # activity_rows['document_dicts'] = activity_rows['document_link_xml'].map(self.unpack_xml)
         
-        document_dataframe['status'] = ['failed' if '_failure' in x.keys() else 'success' for x in document_dataframe['tika_object']]
-        document_dataframe.to_json('data/document_dataframe.gzip', compression='gzip')
+        # print('unfolding document dataframe...')
+        # document_dataframe = self.stitch_document_dicts(activity_rows)
+
+        # print('parsing with tika...')
+        # document_dataframe['tika_object'] = [self.lazy_tika_parse(x) for x in tqdm(document_dataframe['url'])] # series
+        # # document_dataframe['tika_object'] = self.concurrent_run_tika(self.lazy_tika_parse, document_dataframe['url'])
+        
+        # document_dataframe['status'] = ['failed' if '_failure' in x.keys() else 'success' for x in document_dataframe['tika_object']]
+        # document_dataframe.to_json('data/document_dataframe.gzip', compression='gzip')
 
 def main():
     """
@@ -151,4 +168,10 @@ def main():
     pass # debug waypoint
 
 if __name__ == '__main__':
+    client = Client(threads_per_worker=2,
+                n_workers=2,
+                memory_limit='3GB')
+
+    print(client)
+    
     main()
